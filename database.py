@@ -377,20 +377,9 @@ def get_all_settings():
 def reset_end_of_year(new_school_year, reset_type='standard'):
     """
     Reset data at the end of the school year.
-    Modes:
-      - 'standard' (RECOMMENDED):
-          * Deletes all student exercise proposals (statement + solution photos)
-          * Clears old announcements
-          * Updates school_year to new_school_year
-          * Adds new fresh welcoming announcements for each class
-          * KEEPS all classes, chapters, and teacher course files intact!
-      - 'exercises_only':
-          * Clears only student submissions
-          * Updates school_year
-      - 'full_factory_reset':
-          * Clears everything (submissions, announcements, resources, chapters, classes)
-          * Re-seeds standard classes and sample chapters for the new school year
+    Cleans attached files from Cloudinary and local disk to preserve quotas.
     """
+    import storage
     with get_db() as conn:
         cursor = conn.cursor()
 
@@ -402,14 +391,29 @@ def reset_end_of_year(new_school_year, reset_type='standard'):
             """, (new_school_year,))
 
         if reset_type == 'exercises_only':
+            # Delete files from Cloudinary
+            submissions = cursor.execute("SELECT statement_url, solution_url FROM student_submissions").fetchall()
+            for s in submissions:
+                if s['statement_url']:
+                    storage.delete_file_from_storage(s['statement_url'])
+                if s['solution_url']:
+                    storage.delete_file_from_storage(s['solution_url'])
+
             cursor.execute("DELETE FROM student_submissions")
             return {
-                'message': f"Toutes les propositions d'exercices d'élèves ont été effacées. L'année scolaire est maintenant {new_school_year}.",
+                'message': f"Toutes les propositions d'exercices d'élèves ont été effacées du site et du cloud. L'année scolaire est maintenant {new_school_year}.",
                 'type': 'exercises_only'
             }
 
         elif reset_type == 'standard':
-            # 1. Clear all student submissions
+            # 1. Clear all student submissions and their files from Cloudinary
+            submissions = cursor.execute("SELECT statement_url, solution_url FROM student_submissions").fetchall()
+            for s in submissions:
+                if s['statement_url']:
+                    storage.delete_file_from_storage(s['statement_url'])
+                if s['solution_url']:
+                    storage.delete_file_from_storage(s['solution_url'])
+
             cursor.execute("DELETE FROM student_submissions")
             
             # 2. Clear old announcements
@@ -428,12 +432,24 @@ def reset_end_of_year(new_school_year, reset_type='standard'):
                 ))
 
             return {
-                'message': f"Transition vers l'année scolaire {new_school_year} réussie ! Les exercices d'élèves et anciennes annonces ont été effacés. Vos cours et chapitres ont été conservés intacts.",
+                'message': f"Transition vers l'année scolaire {new_school_year} réussie ! Les photos des élèves et anciennes annonces ont été effacées du cloud. Vos cours et chapitres ont été conservés intacts.",
                 'type': 'standard'
             }
 
         elif reset_type == 'full_factory_reset':
-            # Full reset
+            # Delete all uploaded files (submissions + resources) from Cloudinary
+            submissions = cursor.execute("SELECT statement_url, solution_url FROM student_submissions").fetchall()
+            for s in submissions:
+                if s['statement_url']:
+                    storage.delete_file_from_storage(s['statement_url'])
+                if s['solution_url']:
+                    storage.delete_file_from_storage(s['solution_url'])
+
+            resources = cursor.execute("SELECT file_url FROM resources WHERE file_url IS NOT NULL").fetchall()
+            for r in resources:
+                if r['file_url']:
+                    storage.delete_file_from_storage(r['file_url'])
+
             cursor.execute("DELETE FROM student_submissions")
             cursor.execute("DELETE FROM resources")
             cursor.execute("DELETE FROM chapters")
@@ -447,7 +463,7 @@ def reset_end_of_year(new_school_year, reset_type='standard'):
             cursor.execute("UPDATE site_settings SET value = ? WHERE key = 'school_year'", (new_school_year,))
             
             return {
-                'message': f"Réinitialisation totale réussie. Le site a été remis à neuf pour l'année {new_school_year}.",
+                'message': f"Réinitialisation totale réussie. Le site et le stockage cloud ont été remis à neuf pour l'année {new_school_year}.",
                 'type': 'full_factory_reset'
             }
 

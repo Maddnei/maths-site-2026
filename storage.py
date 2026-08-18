@@ -170,3 +170,58 @@ def format_file_size(size_bytes):
         return f"{size_bytes / 1024:.1f} Ko"
     else:
         return f"{size_bytes / (1024 * 1024):.1f} Mo"
+
+
+def delete_file_from_storage(file_url):
+    """
+    Deletes a file either from local disk or from Cloudinary
+    when a resource or submission is deleted from the website,
+    ensuring Cloudinary free quotas (25GB) are never exceeded.
+    """
+    if not file_url:
+        return
+
+    # 1. Local file deletion
+    if file_url.startswith('/static/uploads/'):
+        rel_path = file_url.replace('/static/uploads/', '')
+        local_path = os.path.join(config.UPLOAD_FOLDER, rel_path)
+        if os.path.exists(local_path):
+            try:
+                os.remove(local_path)
+            except Exception as e:
+                print(f"Error removing local file {local_path}: {e}")
+        return
+
+    # 2. Cloudinary deletion
+    if config.USE_CLOUDINARY and 'cloudinary.com' in file_url:
+        try:
+            import cloudinary
+            import cloudinary.uploader
+
+            is_raw = '/raw/' in file_url
+            resource_type = 'raw' if is_raw else 'image'
+
+            if '/upload/' in file_url:
+                after_upload = file_url.split('/upload/')[1]
+                # Strip version like v1787068678/ if present
+                if after_upload.startswith('v') and '/' in after_upload:
+                    parts = after_upload.split('/', 1)
+                    if parts[0][1:].isdigit():
+                        after_upload = parts[1]
+                
+                # For raw files Cloudinary public_id has full name, for images without extension
+                public_id = after_upload if is_raw else after_upload.rsplit('.', 1)[0]
+                
+                # Delete from Cloudinary
+                res = cloudinary.uploader.destroy(public_id, resource_type=resource_type, invalidate=True)
+                
+                # If not found with inferred type and it was a pdf, try the alternate resource_type
+                if res.get('result') != 'ok' and file_url.lower().endswith('.pdf'):
+                    alt_type = 'raw' if resource_type == 'image' else 'image'
+                    alt_public_id = after_upload if alt_type == 'raw' else after_upload.rsplit('.', 1)[0]
+                    cloudinary.uploader.destroy(alt_public_id, resource_type=alt_type, invalidate=True)
+
+                print(f"Purged {public_id} from Cloudinary")
+        except Exception as e:
+            print(f"Error deleting file from Cloudinary: {e}")
+

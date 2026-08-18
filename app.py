@@ -295,8 +295,14 @@ def reject_submission(submission_id):
 @app.route('/admin/soumissions/<int:submission_id>/supprimer', methods=['POST'])
 @admin_required
 def delete_submission(submission_id):
-    """Permanently delete a submission."""
+    """Permanently delete a submission and its photos from storage."""
     with db.get_db() as conn:
+        sub = conn.execute("SELECT statement_url, solution_url FROM student_submissions WHERE id = ?", (submission_id,)).fetchone()
+        if sub:
+            if sub['statement_url']:
+                storage.delete_file_from_storage(sub['statement_url'])
+            if sub['solution_url']:
+                storage.delete_file_from_storage(sub['solution_url'])
         conn.execute("DELETE FROM student_submissions WHERE id = ?", (submission_id,))
     flash("La proposition a été supprimée définitivement.", "success")
     return redirect(request.referrer or url_for('admin_moderation'))
@@ -394,6 +400,21 @@ def edit_class(class_id):
 @admin_required
 def delete_class(class_id):
     with db.get_db() as conn:
+        # Delete all files in chapters of this class
+        chapters = conn.execute("SELECT id FROM chapters WHERE class_id = ?", (class_id,)).fetchall()
+        for ch in chapters:
+            ch_id = ch['id']
+            res_files = conn.execute("SELECT file_url FROM resources WHERE chapter_id = ? AND file_url IS NOT NULL", (ch_id,)).fetchall()
+            for r in res_files:
+                if r['file_url']:
+                    storage.delete_file_from_storage(r['file_url'])
+            sub_files = conn.execute("SELECT statement_url, solution_url FROM student_submissions WHERE chapter_id = ?", (ch_id,)).fetchall()
+            for s in sub_files:
+                if s['statement_url']:
+                    storage.delete_file_from_storage(s['statement_url'])
+                if s['solution_url']:
+                    storage.delete_file_from_storage(s['solution_url'])
+
         conn.execute("DELETE FROM classes WHERE id = ?", (class_id,))
     flash("Classe supprimée.", "success")
     return redirect(url_for('admin_classes'))
@@ -497,13 +518,26 @@ def edit_chapter(chapter_id):
 @app.route('/admin/chapitres/<int:chapter_id>/supprimer', methods=['POST'])
 @admin_required
 def delete_chapter(chapter_id):
-    chapter = db.get_chapter_by_id(chapter_id)
-    class_id = chapter['class_id'] if chapter else None
-    
     with db.get_db() as conn:
+        # Delete resource files from storage
+        res_files = conn.execute("SELECT file_url FROM resources WHERE chapter_id = ? AND file_url IS NOT NULL", (chapter_id,)).fetchall()
+        for r in res_files:
+            if r['file_url']:
+                storage.delete_file_from_storage(r['file_url'])
+
+        # Delete submission files from storage
+        sub_files = conn.execute("SELECT statement_url, solution_url FROM student_submissions WHERE chapter_id = ?", (chapter_id,)).fetchall()
+        for s in sub_files:
+            if s['statement_url']:
+                storage.delete_file_from_storage(s['statement_url'])
+            if s['solution_url']:
+                storage.delete_file_from_storage(s['solution_url'])
+
+        chapter = db.get_chapter_by_id(chapter_id)
+        class_id = chapter['class_id'] if chapter else None
         conn.execute("DELETE FROM chapters WHERE id = ?", (chapter_id,))
 
-    flash("Chapitre supprimé.", "success")
+    flash("Chapitre et ses fichiers supprimés.", "success")
     if class_id:
         return redirect(url_for('class_view', class_id=class_id))
     return redirect(url_for('index'))
@@ -562,6 +596,9 @@ def add_resource(chapter_id):
 @admin_required
 def delete_resource(resource_id):
     with db.get_db() as conn:
+        res = conn.execute("SELECT file_url FROM resources WHERE id = ?", (resource_id,)).fetchone()
+        if res and res['file_url']:
+            storage.delete_file_from_storage(res['file_url'])
         conn.execute("DELETE FROM resources WHERE id = ?", (resource_id,))
     flash("Ressource supprimée avec succès.", "success")
     return redirect(request.referrer or url_for('index'))
