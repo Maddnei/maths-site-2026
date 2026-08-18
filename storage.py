@@ -100,15 +100,32 @@ def save_uploaded_file(file_storage, folder_category='documents', custom_prefix=
     # If Cloudinary is configured, upload to Cloudinary
     if config.USE_CLOUDINARY:
         try:
-            resource_type = "raw" if is_pdf else "image"
+            # Cloudinary: Use 'image' for image formats and 'auto' for PDFs so they keep extension & mime-type
+            resource_type = "auto"
+            
+            # Format public_id so the original filename with extension is preserved
+            clean_base = orig_filename.rsplit('.', 1)[0] if '.' in orig_filename else orig_filename
+            clean_base = secure_filename(clean_base)
+            cloud_public_id = f"{custom_prefix}{unique_id}_{clean_base}" if clean_base else f"{custom_prefix}{unique_id}"
+
             upload_result = cloudinary.uploader.upload(
                 file_storage,
                 folder=f"site2026/{folder_category}",
-                public_id=f"{custom_prefix}{unique_id}",
-                resource_type=resource_type
+                public_id=cloud_public_id,
+                resource_type=resource_type,
+                use_filename=True,
+                unique_filename=True,
+                format=ext if ext else None
             )
+            
+            secure_url = upload_result.get('secure_url', upload_result.get('url'))
+            
+            # Ensure URL ends with .pdf or correct extension if it's a raw/image asset
+            if ext and not secure_url.lower().endswith(f".{ext}"):
+                secure_url = f"{secure_url}.{ext}" if not secure_url.endswith('/') else f"{secure_url}{ext}"
+
             return {
-                'url': upload_result.get('secure_url', upload_result.get('url')),
+                'url': secure_url,
                 'filename': orig_filename,
                 'size': upload_result.get('bytes', 0),
                 'file_type': file_type,

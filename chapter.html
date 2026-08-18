@@ -1,0 +1,681 @@
+{% extends "base.html" %}
+
+{% block title %}{{ chapter.title }} - {{ chapter.class_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-xs font-semibold text-slate-500 overflow-x-auto whitespace-nowrap py-1">
+        <a href="{{ url_for('index') }}" class="hover:text-indigo-600 transition flex items-center gap-1">
+            <i data-lucide="home" class="w-3.5 h-3.5"></i>
+            <span>Accueil</span>
+        </a>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
+        <a href="{{ url_for('class_view', class_id=chapter.class_id) }}" class="hover:text-indigo-600 transition">
+            {{ chapter.class_name }}
+        </a>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span class="text-indigo-600 font-bold">Chapitre {{ chapter.chapter_number }}</span>
+    </nav>
+
+    <!-- Chapter Header Card -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-start space-x-4">
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-xl sm:text-2xl flex-shrink-0 shadow-lg shadow-indigo-500/20">
+                {{ chapter.chapter_number }}
+            </div>
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="px-3 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700">
+                        {{ chapter.class_name }}
+                    </span>
+                    <span class="text-xs font-medium text-slate-400">Chapitre {{ chapter.chapter_number }}</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">{{ chapter.title }}</h1>
+                <p class="text-sm text-slate-500 mt-1 max-w-3xl">{{ chapter.description or 'Retrouvez les documents du professeur ainsi que les exercices et corrections partagés par les élèves.' }}</p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 self-start md:self-auto">
+            {% if is_admin %}
+            <button onclick="openAddResourceModal()" class="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                <span>Ajouter un document / lien</span>
+            </button>
+            <button onclick="openEditChapterModal()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition" title="Modifier le chapitre">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+            </button>
+            {% endif %}
+            
+            <button onclick="openStudentSubmitModal()" class="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
+                <i data-lucide="camera" class="w-4 h-4"></i>
+                <span>Partager un exercice</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Teacher Moderation Box on Chapter Page (if admin & has pending submissions) -->
+    {% if is_admin and pending_submissions %}
+    <div class="bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 rounded-3xl p-6 border-2 border-red-200 shadow-md space-y-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-red-500 text-white flex items-center justify-center font-bold">
+                    <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-red-900">Propositions d'élèves en attente pour ce chapitre ({{ pending_submissions|length }})</h3>
+                    <p class="text-xs text-red-700">Validez les corrections pour les rendre visibles par tous les élèves</p>
+                </div>
+            </div>
+            <a href="{{ url_for('admin_moderation') }}" class="text-xs font-bold text-red-700 underline hover:text-red-900">
+                Centre de modération complet →
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for sub in pending_submissions %}
+            <div class="bg-white p-5 rounded-2xl border border-red-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-800 text-sm">{{ sub.title }}</span>
+                    <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full">En attente</span>
+                </div>
+                <div class="text-xs text-slate-500">
+                    Proposé par <strong class="text-slate-700">{{ sub.author_name }}</strong> le {{ sub.created_at | datetime_fr }}
+                </div>
+                {% if sub.student_note %}
+                <p class="text-xs bg-slate-50 p-2.5 rounded-xl text-slate-600 italic">« {{ sub.student_note }} »</p>
+                {% endif %}
+
+                <!-- Photos Preview -->
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <div class="space-y-1">
+                        <span class="text-[11px] font-bold text-slate-500">Énoncé</span>
+                        <div onclick="openLightbox('{{ sub.statement_url }}', 'Énoncé : {{ sub.title }}')" class="cursor-pointer group relative rounded-xl overflow-hidden border border-slate-200 h-28 bg-slate-100">
+                            <img src="{{ sub.statement_url }}" alt="Énoncé" class="w-full h-full object-cover group-hover:scale-105 transition">
+                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-xs font-bold gap-1">
+                                <i data-lucide="zoom-in" class="w-4 h-4"></i> Agrandir
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-[11px] font-bold text-slate-500">Correction</span>
+                        <div onclick="openLightbox('{{ sub.solution_url }}', 'Corrigé : {{ sub.title }}')" class="cursor-pointer group relative rounded-xl overflow-hidden border border-slate-200 h-28 bg-slate-100">
+                            <img src="{{ sub.solution_url }}" alt="Corrigé" class="w-full h-full object-cover group-hover:scale-105 transition">
+                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-xs font-bold gap-1">
+                                <i data-lucide="zoom-in" class="w-4 h-4"></i> Agrandir
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+                    <form action="{{ url_for('reject_submission', submission_id=sub.id) }}" method="POST" class="inline">
+                        <button type="submit" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-700 text-xs font-bold transition">
+                            Rejeter
+                        </button>
+                    </form>
+                    <form action="{{ url_for('approve_submission', submission_id=sub.id) }}" method="POST" class="inline">
+                        <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            <span>Valider et publier</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabs Container -->
+    <div class="space-y-6">
+        
+        <!-- Tab Navigation Buttons -->
+        <div class="flex border-b border-slate-200 gap-2 sm:gap-4 overflow-x-auto">
+            <button onclick="switchTab('resources-tab')" id="btn-resources-tab" class="tab-btn active-tab flex items-center space-x-2 pb-3 px-2 border-b-2 font-bold text-sm sm:text-base transition">
+                <i data-lucide="folder" class="w-5 h-5"></i>
+                <span>Documents & Cours</span>
+                <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-100 text-indigo-700">{{ resources|length }}</span>
+            </button>
+
+            <button onclick="switchTab('exercises-tab')" id="btn-exercises-tab" class="tab-btn flex items-center space-x-2 pb-3 px-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold text-sm sm:text-base transition">
+                <i data-lucide="camera" class="w-5 h-5"></i>
+                <span>Exercices & Corrigés partagés</span>
+                <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-800">{{ approved_submissions|length }}</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: TEACHER RESOURCES -->
+        <div id="resources-tab" class="tab-content space-y-6">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Ressources du cours</h2>
+                    <p class="text-xs sm:text-sm text-slate-500">Polycopiés, fiches de cours, énoncés de DM, corrigés et liens utiles</p>
+                </div>
+
+                {% if is_admin %}
+                <button onclick="openAddResourceModal()" class="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl transition self-start sm:self-auto">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Ajouter un fichier ou un lien</span>
+                </button>
+                {% endif %}
+            </div>
+
+            {% if resources %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for r in resources %}
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition duration-200 flex flex-col justify-between">
+                    <div>
+                        <!-- Category Badge and Type -->
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold
+                                {% if r.category == 'cours' %}bg-blue-100 text-blue-800
+                                {% elif r.category == 'exercices' %}bg-purple-100 text-purple-800
+                                {% elif r.category == 'dm' %}bg-amber-100 text-amber-800
+                                {% elif r.category == 'corrige' %}bg-emerald-100 text-emerald-800
+                                {% elif r.category == 'lien' %}bg-sky-100 text-sky-800
+                                {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                {% if r.category == 'cours' %}📘 Cours
+                                {% elif r.category == 'exercices' %}✏️ Exercices
+                                {% elif r.category == 'dm' %}📝 Devoir Maison
+                                {% elif r.category == 'corrige' %}✅ Corrigé
+                                {% elif r.category == 'lien' %}🔗 Lien web
+                                {% else %}📄 Document{% endif %}
+                            </span>
+
+                            <div class="flex items-center space-x-1 text-slate-400">
+                                {% if r.resource_type == 'pdf' %}
+                                <span class="text-xs font-bold text-rose-600 flex items-center gap-1"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> PDF</span>
+                                {% elif r.resource_type == 'image' %}
+                                <span class="text-xs font-bold text-indigo-600 flex items-center gap-1"><i data-lucide="image" class="w-3.5 h-3.5"></i> Image</span>
+                                {% else %}
+                                <span class="text-xs font-bold text-sky-600 flex items-center gap-1"><i data-lucide="external-link" class="w-3.5 h-3.5"></i> Lien</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h3 class="text-base font-bold text-slate-900 mb-1 line-clamp-2">{{ r.title }}</h3>
+                        {% if r.description %}
+                        <p class="text-xs text-slate-500 mb-3 line-clamp-2">{{ r.description }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs text-slate-400">
+                            {% if r.resource_type != 'link' and r.file_size %}
+                            {{ r.file_size | filesize }}
+                            {% else %}
+                            Accès direct
+                            {% endif %}
+                        </span>
+
+                        <div class="flex items-center space-x-2">
+                            {% if is_admin %}
+                            <form action="{{ url_for('delete_resource', resource_id=r.id) }}" method="POST" onsubmit="return confirm('Supprimer ce document ?');" class="inline">
+                                <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 transition" title="Supprimer">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            {% if r.resource_type == 'link' %}
+                            <a href="{{ r.external_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-xs px-3 py-1.5 rounded-xl transition">
+                                <span>Ouvrir</span>
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                            </a>
+                            {% elif r.resource_type == 'image' %}
+                            <button onclick="openLightbox('{{ r.file_url }}', '{{ r.title|escape }}')" class="inline-flex items-center space-x-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1.5 rounded-xl transition">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                <span>Voir</span>
+                            </button>
+                            <a href="{{ r.file_url }}" download class="inline-flex items-center space-x-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs p-1.5 rounded-xl transition" title="Télécharger">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            </a>
+                            {% elif r.resource_type == 'pdf' %}
+                            <button onclick="openPdfViewer('{{ r.file_url }}', '{{ r.title|escape }}')" class="inline-flex items-center space-x-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-sm">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                <span>Visualiser</span>
+                            </button>
+                            <a href="{{ r.file_url }}" target="_blank" download="{{ r.title|escape }}.pdf" class="inline-flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-sm" title="Télécharger le fichier PDF">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                <span class="hidden sm:inline">Télécharger</span>
+                            </a>
+                            {% else %}
+                            <a href="{{ r.file_url }}" target="_blank" class="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition shadow-sm">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                <span>Télécharger</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bg-white rounded-3xl p-10 text-center border border-slate-200">
+                <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="file-plus" class="w-7 h-7"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-800">Aucun document pour l'instant</h3>
+                <p class="text-xs text-slate-500 mt-1">Le professeur n'a pas encore téléversé de ressource dans ce chapitre.</p>
+                {% if is_admin %}
+                <button onclick="openAddResourceModal()" class="mt-4 inline-flex items-center space-x-1.5 bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Ajouter le premier document</span>
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- TAB 2: STUDENT EXERCISES & CORRECTIONS -->
+        <div id="exercises-tab" class="tab-content hidden space-y-6">
+            
+            <!-- Student Banner -->
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full bg-white/20 text-xs font-bold mb-3 backdrop-blur-sm">
+                        📸 Espace Collaboratif Élèves
+                    </span>
+                    <h3 class="text-xl sm:text-2xl font-extrabold text-white mb-2">Partagez vos exercices et corrections !</h3>
+                    <p class="text-emerald-50 text-xs sm:text-sm max-w-xl leading-relaxed">
+                        Prenez en photo l'énoncé et votre correction. Après validation par M. Gimenez, ils seront mis à disposition de toute la classe avec votre nom (ou de manière anonyme).
+                    </p>
+                </div>
+                <button onclick="openStudentSubmitModal()" class="inline-flex items-center space-x-2 bg-white text-emerald-800 hover:bg-emerald-50 font-extrabold text-sm px-5 py-3 rounded-2xl shadow-md hover:scale-105 active:scale-95 transition self-start md:self-auto flex-shrink-0">
+                    <i data-lucide="camera" class="w-5 h-5 text-emerald-600"></i>
+                    <span>Proposer un exercice</span>
+                </button>
+            </div>
+
+            <!-- Approved Exercises Grid -->
+            {% if approved_submissions %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for sub in approved_submissions %}
+                <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 hover:border-emerald-300 hover:shadow-lg transition duration-200 space-y-4 flex flex-col justify-between">
+                    
+                    <div>
+                        <!-- Header -->
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <span class="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                                <i data-lucide="check-circle" class="w-3 h-3"></i>
+                                <span>Validé par le professeur</span>
+                            </span>
+
+                            <span class="text-xs text-slate-400 font-medium">{{ sub.created_at | date_short_fr }}</span>
+                        </div>
+
+                        <h3 class="text-lg font-extrabold text-slate-900 mb-1">{{ sub.title }}</h3>
+                        
+                        <p class="text-xs text-slate-500 flex items-center gap-1.5 mb-3">
+                            <i data-lucide="user" class="w-3.5 h-3.5 text-indigo-500"></i>
+                            <span>Résolu et partagé par : <strong class="text-slate-800">{{ sub.author_name }}</strong></span>
+                        </p>
+
+                        {% if sub.student_note %}
+                        <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs text-slate-600 mb-3 italic">
+                            « {{ sub.student_note }} »
+                        </div>
+                        {% endif %}
+
+                        <!-- Side by Side Photos -->
+                        <div class="grid grid-cols-2 gap-3">
+                            
+                            <!-- Énoncé Photo Card -->
+                            <div class="space-y-1.5">
+                                <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                                    <span>1. Énoncé</span>
+                                </div>
+                                <div onclick="openLightbox('{{ sub.statement_url }}', 'Énoncé : {{ sub.title }} (par {{ sub.author_name }})')" class="cursor-pointer group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-[4/3]">
+                                    <img src="{{ sub.statement_url }}" alt="Énoncé de {{ sub.title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-200 text-white text-xs font-bold gap-1.5">
+                                        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                                        <span>Agrandir</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Corrigé Photo Card -->
+                            <div class="space-y-1.5">
+                                <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                                    <span>2. Correction</span>
+                                </div>
+                                <div onclick="openLightbox('{{ sub.solution_url }}', 'Correction : {{ sub.title }} (par {{ sub.author_name }})')" class="cursor-pointer group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-[4/3]">
+                                    <img src="{{ sub.solution_url }}" alt="Corrigé de {{ sub.title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-200 text-white text-xs font-bold gap-1.5">
+                                        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                                        <span>Agrandir</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Bottom Bar -->
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span class="text-slate-400">Cliquez sur une photo pour zoomer</span>
+                        
+                        {% if is_admin %}
+                        <form action="{{ url_for('delete_submission', submission_id=sub.id) }}" method="POST" onsubmit="return confirm('Supprimer définitivement cet exercice corrigé ?');" class="inline">
+                            <button type="submit" class="text-rose-600 hover:text-rose-800 font-semibold p-1">
+                                Supprimer
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bg-white rounded-3xl p-10 sm:p-14 text-center border border-slate-200">
+                <div class="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="camera" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Aucun exercice corrigé pour l'instant</h3>
+                <p class="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+                    Soyez le premier de la classe à partager un exercice résolu en classe avec sa correction !
+                </p>
+                <button onclick="openStudentSubmitModal()" class="mt-5 inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Envoyer mon premier exercice</span>
+                </button>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- 1. Student Submission Modal -->
+<div id="studentSubmitModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200 overflow-y-auto p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg p-6 sm:p-8 my-8 transform scale-95 transition-transform duration-200" id="studentModalBox">
+        
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <i data-lucide="camera" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Partager un exercice corrigé</h3>
+                    <p class="text-xs text-slate-500">{{ chapter.title }}</p>
+                </div>
+            </div>
+            <button onclick="closeStudentSubmitModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('submit_student_exercise', chapter_id=chapter.id) }}" method="POST" enctype="multipart/form-data" class="space-y-5" id="studentSubmitForm">
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Référence / Titre de l'exercice *</label>
+                <input type="text" name="title" required placeholder="Ex: Ex 42 p. 115 - Dérivation d'un polynôme" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Votre prénom ou nom</label>
+                <input type="text" name="author_name" id="author_name_input" placeholder="Ex: Lucas M." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <div class="flex items-center space-x-2 mt-2">
+                    <input type="checkbox" name="is_anonymous" value="1" id="is_anonymous" onchange="toggleAnonymous(this)" class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
+                    <label for="is_anonymous" class="text-xs text-slate-600 font-medium">Je préfère rester anonyme sur le site</label>
+                </div>
+            </div>
+
+            <!-- Photos Upload (Smartphone direct camera & file chooser) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                
+                <!-- Statement Photo Input -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700">1. Photo de l'ÉNONCÉ *</label>
+                    <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-4 text-center bg-slate-50/50 hover:bg-emerald-50/30 transition cursor-pointer" onclick="document.getElementById('statement_file_input').click()">
+                        <input type="file" id="statement_file_input" name="statement_photo" accept="image/*" capture="environment" required class="hidden" onchange="previewImage(this, 'statement_preview', 'statement_placeholder')">
+                        
+                        <div id="statement_placeholder" class="space-y-1">
+                            <i data-lucide="camera" class="w-6 h-6 text-slate-400 mx-auto"></i>
+                            <p class="text-xs font-bold text-slate-700">Prendre en photo</p>
+                            <p class="text-[10px] text-slate-400">ou choisir un fichier</p>
+                        </div>
+                        <img id="statement_preview" src="" alt="Aperçu énoncé" class="hidden w-full h-24 object-cover rounded-xl shadow-sm">
+                    </div>
+                </div>
+
+                <!-- Solution Photo Input -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700">2. Photo du CORRIGÉ *</label>
+                    <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-4 text-center bg-slate-50/50 hover:bg-emerald-50/30 transition cursor-pointer" onclick="document.getElementById('solution_file_input').click()">
+                        <input type="file" id="solution_file_input" name="solution_photo" accept="image/*" capture="environment" required class="hidden" onchange="previewImage(this, 'solution_preview', 'solution_placeholder')">
+                        
+                        <div id="solution_placeholder" class="space-y-1">
+                            <i data-lucide="check-square" class="w-6 h-6 text-slate-400 mx-auto"></i>
+                            <p class="text-xs font-bold text-slate-700">Prendre en photo</p>
+                            <p class="text-[10px] text-slate-400">ou choisir un fichier</p>
+                        </div>
+                        <img id="solution_preview" src="" alt="Aperçu corrigé" class="hidden w-full h-24 object-cover rounded-xl shadow-sm">
+                    </div>
+                </div>
+
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Remarque ou astuce (facultatif)</label>
+                <textarea name="student_note" rows="2" placeholder="Ex: Attention au signe moins à la question 2 !" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+            </div>
+
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-start space-x-2">
+                <i data-lucide="info" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"></i>
+                <span>Votre envoi sera relu par M. Gimenez avant d'être affiché sur la page du cours.</span>
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-3">
+                <button type="button" onclick="closeStudentSubmitModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
+                    Annuler
+                </button>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center space-x-2">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    <span>Envoyer pour validation</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if is_admin %}
+<!-- 2. Teacher Add Resource Modal -->
+<div id="addResourceModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200 p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md p-6 sm:p-8 my-8 transform scale-95 transition-transform duration-200" id="resourceModalBox">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                    <i data-lucide="upload" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Ajouter une ressource</h3>
+                    <p class="text-xs text-slate-500">Chapitre {{ chapter.chapter_number }}</p>
+                </div>
+            </div>
+            <button onclick="closeAddResourceModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('add_resource', chapter_id=chapter.id) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Titre du document ou lien *</label>
+                <input type="text" name="title" required placeholder="Ex: Cours complet - Fonctions et variations" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Catégorie</label>
+                    <select name="category" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="cours">📘 Cours</option>
+                        <option value="exercices">✏️ Fiche d'exercices</option>
+                        <option value="dm">📝 Devoir Maison (DM)</option>
+                        <option value="corrige">✅ Corrigé officiel</option>
+                        <option value="fiche">📌 Fiche méthode</option>
+                        <option value="lien">🔗 Lien internet</option>
+                        <option value="autre">📄 Autre document</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Type de ressource</label>
+                    <select name="resource_type" id="resource_type_select" onchange="toggleResourceType(this.value)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="file">📁 Fichier (PDF, Image)</option>
+                        <option value="link">🔗 Lien Web (GeoGebra, Vidéo...)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- File Upload Input -->
+            <div id="file_input_container">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Fichier (PDF, PNG, JPG, JPEG)</label>
+                <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.webp" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+            </div>
+
+            <!-- External URL Input -->
+            <div id="url_input_container" class="hidden">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">URL du site / vidéo / GeoGebra</label>
+                <input type="url" name="external_url" placeholder="https://www.geogebra.org/..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Description (facultatif)</label>
+                <textarea name="description" rows="2" placeholder="Consignes, date limite pour le DM..." class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-3">
+                <button type="button" onclick="closeAddResourceModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
+                    Annuler
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition">
+                    Ajouter la ressource
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 3. Teacher Edit Chapter Modal -->
+<div id="editChapterModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200 p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md p-6 sm:p-8 my-8 transform scale-95 transition-transform duration-200" id="editChapterBox">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Modifier le chapitre</h3>
+                    <p class="text-xs text-slate-500">{{ chapter.class_name }}</p>
+                </div>
+            </div>
+            <button onclick="closeEditChapterModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('edit_chapter', chapter_id=chapter.id) }}" method="POST" class="space-y-4">
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Numéro du chapitre</label>
+                <input type="number" name="chapter_number" value="{{ chapter.chapter_number }}" min="1" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Titre</label>
+                <input type="text" name="title" value="{{ chapter.title }}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Description</label>
+                <textarea name="description" rows="3" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ chapter.description }}</textarea>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-1">
+                <input type="checkbox" name="is_visible" id="is_visible" {% if chapter.is_visible %}checked{% endif %} class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                <label for="is_visible" class="text-xs text-slate-700 font-medium">Visible par les élèves</label>
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-3">
+                <button type="button" onclick="closeEditChapterModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
+                    Annuler
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition">
+                    Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active-tab', 'border-indigo-600', 'text-indigo-600');
+            btn.classList.add('border-transparent', 'text-slate-500');
+        });
+
+        const activeContent = document.getElementById(tabId);
+        const activeBtn = document.getElementById('btn-' + tabId);
+
+        if (activeContent && activeBtn) {
+            activeContent.classList.remove('hidden');
+            activeBtn.classList.add('active-tab', 'border-indigo-600', 'text-indigo-600');
+            activeBtn.classList.remove('border-transparent', 'text-slate-500');
+        }
+    }
+
+    function toggleResourceType(val) {
+        const fileContainer = document.getElementById('file_input_container');
+        const urlContainer = document.getElementById('url_input_container');
+        if (val === 'link') {
+            fileContainer.classList.add('hidden');
+            urlContainer.classList.remove('hidden');
+        } else {
+            fileContainer.classList.remove('hidden');
+            urlContainer.classList.add('hidden');
+        }
+    }
+
+    function toggleAnonymous(checkbox) {
+        const input = document.getElementById('author_name_input');
+        if (checkbox.checked) {
+            input.disabled = true;
+            input.value = "Anonyme";
+            input.classList.add('opacity-50', 'bg-slate-200');
+        } else {
+            input.disabled = false;
+            input.value = "";
+            input.classList.remove('opacity-50', 'bg-slate-200');
+        }
+    }
+
+    function previewImage(input, previewId, placeholderId) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById(previewId);
+                const placeholder = document.getElementById(placeholderId);
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+{% endblock %}
