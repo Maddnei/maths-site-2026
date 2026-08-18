@@ -70,6 +70,7 @@ function openPdfViewer(pdfUrl, title) {
     if (downloadBtn) downloadBtn.href = pdfUrl;
     if (newTabBtn) newTabBtn.href = pdfUrl;
 
+    // Use Google Docs PDF viewer as a universal web fallback if needed or direct link
     iframe.src = pdfUrl;
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
