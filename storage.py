@@ -100,8 +100,8 @@ def save_uploaded_file(file_storage, folder_category='documents', custom_prefix=
     # If Cloudinary is configured, upload to Cloudinary
     if config.USE_CLOUDINARY:
         try:
-            # Cloudinary: Use 'image' for images and 'raw' for PDFs
-            # For raw PDF assets, Cloudinary requires the full filename (with .pdf) as public_id
+            # Cloudinary: Use 'image' for images and 'image' or 'raw' with flags
+            # For PDF files in Cloudinary, upload as 'image' with format='pdf' OR 'raw' with access_mode='public'
             if is_pdf:
                 resource_type = "raw"
                 cloud_public_id = f"{custom_prefix}{unique_id}_{orig_filename}"
@@ -109,7 +109,9 @@ def save_uploaded_file(file_storage, folder_category='documents', custom_prefix=
                     file_storage,
                     folder=f"site2026/{folder_category}",
                     public_id=cloud_public_id,
-                    resource_type=resource_type
+                    resource_type=resource_type,
+                    type="upload",
+                    access_mode="public"
                 )
             else:
                 resource_type = "image"
@@ -118,7 +120,9 @@ def save_uploaded_file(file_storage, folder_category='documents', custom_prefix=
                     file_storage,
                     folder=f"site2026/{folder_category}",
                     public_id=cloud_public_id,
-                    resource_type=resource_type
+                    resource_type=resource_type,
+                    type="upload",
+                    access_mode="public"
                 )
 
             return {

@@ -568,6 +568,52 @@ def delete_resource(resource_id):
 
 
 # -------------------------------------------------------------------
+# PDF & Resource Proxy (Accès direct garanti et sécurisé aux PDF)
+# -------------------------------------------------------------------
+@app.route('/ressource/pdf/<int:resource_id>')
+def view_pdf_proxy(resource_id):
+    """Serve PDF directly with correct headers to guarantee 100% viewing and downloading."""
+    with db.get_db() as conn:
+        res = conn.execute("SELECT * FROM resources WHERE id = ?", (resource_id,)).fetchone()
+    if not res or not res['file_url']:
+        flash("Document introuvable.", "danger")
+        return redirect(url_for('index'))
+
+    file_url = res['file_url']
+
+    # 1. If it's a local file, serve directly from disk with PDF mimetype
+    if file_url.startswith('/static/uploads/'):
+        rel_path = file_url.replace('/static/uploads/', '')
+        return send_from_directory(
+            config.UPLOAD_FOLDER, 
+            rel_path, 
+            mimetype='application/pdf', 
+            as_attachment=False
+        )
+
+    # 2. If it's on Cloudinary, stream it through the server to bypass 401 raw restrictions
+    try:
+        import requests
+        r = requests.get(file_url, stream=True, timeout=15)
+        if r.status_code == 200:
+            from flask import Response
+            filename = f"{res['title']}.pdf"
+            return Response(
+                r.iter_content(chunk_size=1024 * 64),
+                content_type='application/pdf',
+                headers={
+                    'Content-Disposition': f'inline; filename="{filename}"'
+                }
+            )
+        else:
+            # Fallback direct redirect
+            return redirect(file_url)
+    except Exception as e:
+        print(f"PDF proxy error: {e}")
+        return redirect(file_url)
+
+
+# -------------------------------------------------------------------
 # Site Settings & End of Year Transition (Fin d'année & Réinitialisation)
 # -------------------------------------------------------------------
 @app.route('/admin/parametres')
