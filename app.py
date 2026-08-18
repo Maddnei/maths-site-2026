@@ -314,26 +314,57 @@ def admin_classes():
 @admin_required
 def add_class():
     name = request.form.get('name', '').strip()
-    code = request.form.get('code', '').strip().lower().replace(' ', '-')
+    raw_code = request.form.get('code', '').strip().lower()
     level = request.form.get('level', '').strip()
     description = request.form.get('description', '').strip()
     color = request.form.get('color', 'indigo')
     icon = request.form.get('icon', 'book-open')
-    order = int(request.form.get('display_order', 0) or 0)
+    
+    # Auto-generate code from name if user left it blank
+    import re
+    if raw_code:
+        code = re.sub(r'[^a-zA-Z0-9]+', '-', raw_code).strip('-')
+    else:
+        code = re.sub(r'[^a-zA-Z0-9]+', '-', name.lower()).strip('-') if name else ''
 
-    if not name or not code or not level:
-        flash("Veuillez renseigner le nom, le code et le niveau de la classe.", "danger")
+    order = request.form.get('display_order', '')
+    try:
+        order = int(order) if order else 1
+    except ValueError:
+        order = 1
+
+    if not name or not level:
+        flash("Veuillez renseigner au moins le nom et le niveau de la classe.", "danger")
         return redirect(url_for('admin_classes'))
 
     try:
         with db.get_db() as conn:
-            conn.execute("""
+            # If code already exists or is empty, ensure uniqueness
+            existing = conn.execute("SELECT id FROM classes WHERE code = ?", (code,)).fetchone()
+            if existing or not code:
+                import uuid
+                code = f"{code or 'classe'}-{str(uuid.uuid4())[:4]}"
+
+            cursor = conn.execute("""
                 INSERT INTO classes (name, code, level, description, icon, color, display_order)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (name, code, level, description, icon, color, order))
-        flash(f"La classe « {name} » a été créée avec succès.", "success")
+            new_class_id = cursor.lastrowid
+
+            # Also create a default welcoming announcement for this new class
+            school_year = db.get_setting('school_year', '2026-2027')
+            conn.execute("""
+                INSERT INTO announcements (class_id, title, content, badge_type, is_pinned)
+                VALUES (?, ?, ?, 'info', 1)
+            """, (
+                new_class_id,
+                f"Bienvenue en {name} ({school_year}) !",
+                "Retrouvez ici vos cours, fiches de travail et corrections partagées."
+            ))
+
+        flash(f"La classe « {name} » a été créée avec succès !", "success")
     except Exception as e:
-        flash(f"Erreur lors de la création de la classe (code peut-être déjà utilisé) : {e}", "danger")
+        flash(f"Erreur lors de la création de la classe : {e}", "danger")
 
     return redirect(url_for('admin_classes'))
 

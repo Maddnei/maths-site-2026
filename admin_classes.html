@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des classes - Espace Professeur{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <!-- Header -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center space-x-4">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <i data-lucide="layers" class="w-7 h-7"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Gestion des classes</h1>
+                <p class="text-sm text-slate-500">Ajoutez, modifiez ou réorganisez vos classes pour l'année {{ school_year }}</p>
+            </div>
+        </div>
+
+        <button onclick="openAddClassModal()" class="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-3 rounded-2xl shadow-md transition self-start md:self-auto">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            <span>Créer une nouvelle classe</span>
+        </button>
+    </div>
+
+    <!-- Classes List -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for c in classes %}
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-sm space-y-4 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700">
+                        {{ c.level }}
+                    </span>
+                    <span class="text-xs font-semibold text-slate-400">Ordre : {{ c.display_order }}</span>
+                </div>
+
+                <div class="flex items-start space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="{{ c.icon or 'book-open' }}" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-extrabold text-slate-900">{{ c.name }}</h3>
+                        <p class="text-xs text-slate-400 font-mono mt-0.5">Code : {{ c.code }}</p>
+                    </div>
+                </div>
+
+                <p class="text-sm text-slate-600 mt-3">{{ c.description or 'Aucune description fournie.' }}</p>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                <a href="{{ url_for('class_view', class_id=c.id) }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                    <span>Accéder aux chapitres</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="openEditClassModal('{{ c.id }}', '{{ c.name|escape }}', '{{ c.level|escape }}', '{{ c.description|escape }}', '{{ c.icon }}', '{{ c.color }}', '{{ c.display_order }}')" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition" title="Modifier la classe">
+                        <i data-lucide="edit" class="w-4 h-4"></i>
+                    </button>
+
+                    <form action="{{ url_for('delete_class', class_id=c.id) }}" method="POST" onsubmit="return confirm('Attention : supprimer cette classe supprimera également tous ses chapitres, ressources et exercices. Confirmer ?');" class="inline">
+                        <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition" title="Supprimer la classe">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Modal Create Class -->
+<div id="addClassModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200 p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md p-6 sm:p-8 my-8 transform scale-95 transition-transform duration-200" id="addClassBox">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Ajouter une classe</h3>
+                    <p class="text-xs text-slate-500">Configuration de l'année scolaire</p>
+                </div>
+            </div>
+            <button onclick="closeAddClassModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('add_class') }}" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Nom complet de la classe *</label>
+                <input type="text" name="name" required placeholder="Ex: 2nde 4 (Maths & SNT)" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Niveau *</label>
+                    <input type="text" name="level" required placeholder="ex: Seconde, 1ère, Terminale" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Code court (facultatif)</label>
+                    <input type="text" name="code" placeholder="Généré automatiquement si vide" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Description (facultatif)</label>
+                <textarea name="description" rows="2" placeholder="Sous-titre ou spécialité..." class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Icône</label>
+                    <select name="icon" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="binary">binary (SNT)</option>
+                        <option value="trending-up">trending-up (STMG)</option>
+                        <option value="pie-chart">pie-chart (STMG)</option>
+                        <option value="atom">atom (Sciences)</option>
+                        <option value="microscope">microscope (Sciences)</option>
+                        <option value="calculator">calculator (Maths)</option>
+                        <option value="book-open">book-open (Général)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Ordre d'affichage</label>
+                    <input type="number" name="display_order" value="{{ (classes|length) + 1 }}" min="1" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-3">
+                <button type="button" onclick="closeAddClassModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
+                    Annuler
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition">
+                    Créer la classe
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Edit Class -->
+<div id="editClassModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200 p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md p-6 sm:p-8 my-8 transform scale-95 transition-transform duration-200" id="editClassBox">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Modifier la classe</h3>
+                </div>
+            </div>
+            <button onclick="closeEditClassModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form id="editClassForm" action="" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Nom de la classe</label>
+                <input type="text" id="edit_class_name" name="name" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Niveau</label>
+                <input type="text" id="edit_class_level" name="level" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Description</label>
+                <textarea id="edit_class_desc" name="description" rows="2" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Icône</label>
+                    <select id="edit_class_icon" name="icon" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="binary">binary (SNT)</option>
+                        <option value="trending-up">trending-up (STMG)</option>
+                        <option value="pie-chart">pie-chart (STMG)</option>
+                        <option value="atom">atom (Sciences)</option>
+                        <option value="microscope">microscope (Sciences)</option>
+                        <option value="calculator">calculator (Maths)</option>
+                        <option value="book-open">book-open (Général)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Ordre d'affichage</label>
+                    <input type="number" id="edit_class_order" name="display_order" min="1" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-3">
+                <button type="button" onclick="closeEditClassModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
+                    Annuler
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition">
+                    Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openAddClassModal() {
+        const m = document.getElementById('addClassModal');
+        const box = document.getElementById('addClassBox');
+        m.classList.remove('hidden');
+        setTimeout(() => {
+            m.classList.remove('opacity-0');
+            box.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeAddClassModal() {
+        const m = document.getElementById('addClassModal');
+        const box = document.getElementById('addClassBox');
+        m.classList.add('opacity-0');
+        box.classList.add('scale-95');
+        setTimeout(() => m.classList.add('hidden'), 200);
+    }
+
+    function openEditClassModal(id, name, level, desc, icon, color, order) {
+        document.getElementById('editClassForm').action = '/admin/classes/' + id + '/modifier';
+        document.getElementById('edit_class_name').value = name;
+        document.getElementById('edit_class_level').value = level;
+        document.getElementById('edit_class_desc').value = desc;
+        document.getElementById('edit_class_icon').value = icon;
+        document.getElementById('edit_class_order').value = order;
+
+        const m = document.getElementById('editClassModal');
+        const box = document.getElementById('editClassBox');
+        m.classList.remove('hidden');
+        setTimeout(() => {
+            m.classList.remove('opacity-0');
+            box.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeEditClassModal() {
+        const m = document.getElementById('editClassModal');
+        const box = document.getElementById('editClassBox');
+        m.classList.add('opacity-0');
+        box.classList.add('scale-95');
+        setTimeout(() => m.classList.add('hidden'), 200);
+    }
+</script>
+{% endblock %}
