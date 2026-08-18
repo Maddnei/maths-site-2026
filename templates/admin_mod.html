@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Centre de Modération - Espace Professeur{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <!-- Header -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center space-x-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <i data-lucide="check-square" class="w-7 h-7"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Centre de modération</h1>
+                <p class="text-sm text-slate-500">Vérifiez et validez les photos d'énoncés et corrigés envoyées par vos élèves</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <span class="px-4 py-2 rounded-2xl bg-amber-50 text-amber-800 font-extrabold text-sm border border-amber-200">
+                {{ pending_count }} proposition(s) en attente
+            </span>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex border-b border-slate-200 gap-2 sm:gap-4 overflow-x-auto">
+        <a href="{{ url_for('admin_moderation', filter='pending') }}" class="flex items-center space-x-2 pb-3 px-3 border-b-2 font-bold text-sm sm:text-base transition {% if current_filter == 'pending' %}border-amber-600 text-amber-600{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+            <i data-lucide="clock" class="w-4 h-4"></i>
+            <span>En attente de validation</span>
+            {% if pending_count > 0 %}
+            <span class="px-2 py-0.5 rounded-full text-xs bg-red-500 text-white font-black">{{ pending_count }}</span>
+            {% endif %}
+        </a>
+
+        <a href="{{ url_for('admin_moderation', filter='approved') }}" class="flex items-center space-x-2 pb-3 px-3 border-b-2 font-bold text-sm sm:text-base transition {% if current_filter == 'approved' %}border-emerald-600 text-emerald-600{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>Validés & Publiés</span>
+        </a>
+
+        <a href="{{ url_for('admin_moderation', filter='rejected') }}" class="flex items-center space-x-2 pb-3 px-3 border-b-2 font-bold text-sm sm:text-base transition {% if current_filter == 'rejected' %}border-rose-600 text-rose-600{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+            <i data-lucide="x-circle" class="w-4 h-4"></i>
+            <span>Rejetés</span>
+        </a>
+
+        <a href="{{ url_for('admin_moderation', filter='all') }}" class="flex items-center space-x-2 pb-3 px-3 border-b-2 font-bold text-sm sm:text-base transition {% if current_filter == 'all' %}border-indigo-600 text-indigo-600{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+            <i data-lucide="list" class="w-4 h-4"></i>
+            <span>Toutes les propositions</span>
+        </a>
+    </div>
+
+    <!-- Submissions List -->
+    {% if submissions %}
+    <div class="grid grid-cols-1 gap-6">
+        {% for sub in submissions %}
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 hover:shadow-md transition space-y-5">
+            
+            <!-- Card Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                <div class="flex items-center space-x-3">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold
+                        {% if sub.status == 'approved' %}bg-emerald-100 text-emerald-800
+                        {% elif sub.status == 'rejected' %}bg-rose-100 text-rose-800
+                        {% else %}bg-amber-100 text-amber-800 animate-pulse{% endif %}">
+                        {% if sub.status == 'approved' %}✓ Validé & en ligne
+                        {% elif sub.status == 'rejected' %}✕ Rejeté
+                        {% else %}⏳ En attente de validation{% endif %}
+                    </span>
+                    
+                    <span class="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+                        {{ sub.class_name }}
+                    </span>
+
+                    <span class="text-xs text-slate-500 font-medium">
+                        Chapitre {{ sub.chapter_number }} : {{ sub.chapter_title }}
+                    </span>
+                </div>
+
+                <div class="text-xs text-slate-400">
+                    Soumis le {{ sub.created_at | datetime_fr }}
+                </div>
+            </div>
+
+            <!-- Title and Author -->
+            <div>
+                <h3 class="text-xl font-extrabold text-slate-900 mb-1">{{ sub.title }}</h3>
+                <p class="text-xs text-slate-600 flex items-center gap-1.5">
+                    <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
+                    <span>Élève : <strong class="text-slate-800">{{ sub.author_name }}</strong></span>
+                    {% if sub.is_anonymous %}
+                    <span class="text-[11px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">(a demandé à être affiché anonyme)</span>
+                    {% endif %}
+                </p>
+
+                {% if sub.student_note %}
+                <div class="mt-2 bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 text-xs text-indigo-900 italic">
+                    « {{ sub.student_note }} »
+                </div>
+                {% endif %}
+
+                {% if sub.reject_reason %}
+                <div class="mt-2 bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-800">
+                    Motif de rejet : {{ sub.reject_reason }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Photos Side-by-Side with Instant Zoom -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                
+                <!-- Énoncé Photo Card -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="file-text" class="w-4 h-4 text-indigo-500"></i>
+                            <span>1. Photo de l'ÉNONCÉ</span>
+                        </span>
+                        <button onclick="openLightbox('{{ sub.statement_url }}', 'Énoncé : {{ sub.title }}')" class="text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i> Agrandir
+                        </button>
+                    </div>
+                    <div onclick="openLightbox('{{ sub.statement_url }}', 'Énoncé : {{ sub.title }}')" class="cursor-pointer group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-[16/10]">
+                        <img src="{{ sub.statement_url }}" alt="Énoncé" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-xs font-bold gap-1.5">
+                            <i data-lucide="zoom-in" class="w-5 h-5"></i>
+                            <span>Cliquer pour inspecter en grand</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Corrigé Photo Card -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                            <span>2. Photo du CORRIGÉ</span>
+                        </span>
+                        <button onclick="openLightbox('{{ sub.solution_url }}', 'Corrigé : {{ sub.title }}')" class="text-emerald-600 hover:text-emerald-800 flex items-center gap-1">
+                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i> Agrandir
+                        </button>
+                    </div>
+                    <div onclick="openLightbox('{{ sub.solution_url }}', 'Corrigé : {{ sub.title }}')" class="cursor-pointer group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-[16/10]">
+                        <img src="{{ sub.solution_url }}" alt="Corrigé" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-xs font-bold gap-1.5">
+                            <i data-lucide="zoom-in" class="w-5 h-5"></i>
+                            <span>Cliquer pour inspecter en grand</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Action Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                <a href="{{ url_for('chapter_view', chapter_id=sub.chapter_id) }}" class="text-xs font-semibold text-slate-500 hover:text-indigo-600 flex items-center gap-1">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    <span>Voir dans le chapitre</span>
+                </a>
+
+                <div class="flex items-center space-x-2">
+                    <form action="{{ url_for('delete_submission', submission_id=sub.id) }}" method="POST" onsubmit="return confirm('Supprimer définitivement cette proposition ?');" class="inline">
+                        <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition" title="Supprimer définitivement">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+
+                    {% if sub.status != 'rejected' %}
+                    <form action="{{ url_for('reject_submission', submission_id=sub.id) }}" method="POST" class="inline">
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-700 text-xs font-bold transition">
+                            Rejeter
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if sub.status != 'approved' %}
+                    <form action="{{ url_for('approve_submission', submission_id=sub.id) }}" method="POST" class="inline">
+                        <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md flex items-center gap-1.5">
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                            <span>Valider et rendre public</span>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-3xl p-12 text-center border border-slate-200">
+        <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="check-check" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-800">Aucune proposition dans cette catégorie</h3>
+        <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+            Toutes les propositions des élèves ont été traitées ou aucun élève n'a encore envoyé d'exercice pour ce filtre.
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

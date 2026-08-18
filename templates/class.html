@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}{{ current_class.name }} - Espace Mathématiques & Sciences{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-xs font-semibold text-slate-500">
+        <a href="{{ url_for('index') }}" class="hover:text-indigo-600 transition flex items-center gap-1">
+            <i data-lucide="home" class="w-3.5 h-3.5"></i>
+            <span>Accueil</span>
+        </a>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span class="text-indigo-600 font-bold">{{ current_class.name }}</span>
+    </nav>
+
+    <!-- Class Header Card -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-start sm:items-center space-x-4">
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20">
+                <i data-lucide="{{ current_class.icon or 'book-open' }}" class="w-8 h-8"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="px-3 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700">
+                        {{ current_class.level }}
+                    </span>
+                    <span class="text-xs text-slate-400">• {{ chapters|length }} chapitre(s)</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">{{ current_class.name }}</h1>
+                <p class="text-sm text-slate-500 mt-1">{{ current_class.description }}</p>
+            </div>
+        </div>
+
+        {% if is_admin %}
+        <div class="flex flex-wrap items-center gap-2 self-start md:self-auto">
+            <button onclick="openAddChapterModal()" class="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Nouveau chapitre</span>
+            </button>
+            <button onclick="openAddAnnouncementModal('{{ current_class.id }}')" class="inline-flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
+                <i data-lucide="megaphone" class="w-4 h-4"></i>
+                <span>Ajouter une info</span>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Class Announcements / Bulletin Board -->
+    {% if announcements %}
+    <div class="bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 rounded-3xl p-6 sm:p-8 border border-amber-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-sm">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                </div>
+                <h2 class="text-lg sm:text-xl font-bold text-slate-900">Tableau d'affichage de la classe</h2>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for a in announcements %}
+            <div class="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold
+                            {% if a.badge_type == 'honor' %}bg-amber-100 text-amber-800
+                            {% elif a.badge_type == 'eval' %}bg-rose-100 text-rose-800
+                            {% elif a.badge_type == 'devoir' %}bg-purple-100 text-purple-800
+                            {% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {% if a.badge_type == 'honor' %}🏆 Félicitations / Meilleures notes
+                            {% elif a.badge_type == 'eval' %}📝 Contrôle / Évaluation
+                            {% elif a.badge_type == 'devoir' %}📌 Devoir à rendre
+                            {% else %}📢 Information{% endif %}
+                        </span>
+
+                        {% if is_admin %}
+                        <form action="{{ url_for('delete_announcement', announcement_id=a.id) }}" method="POST" onsubmit="return confirm('Supprimer cette note ?');" class="inline">
+                            <button type="submit" class="text-slate-400 hover:text-red-600 p-1">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="text-base font-bold text-slate-800 mb-1">{{ a.title }}</h3>
+                    <p class="text-sm text-slate-600 whitespace-pre-line leading-relaxed">{{ a.content }}</p>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
+                    <span>Publié le {{ a.created_at | datetime_fr }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Chapters Section -->
+    <div class="space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Chapitres du programme</h2>
+                <p class="text-xs sm:text-sm text-slate-500">Sélectionnez un chapitre pour consulter les cours et les exercices corrigés</p>
+            </div>
+        </div>
+
+        {% if chapters %}
+        <div class="grid grid-cols-1 gap-4">
+            {% for ch in chapters %}
+            <div class="group bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                
+                <div class="flex items-start space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-black text-lg flex-shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition">
+                        {{ ch.chapter_number }}
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <h3 class="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition">
+                                {{ ch.title }}
+                            </h3>
+                            {% if not ch.is_visible %}
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">
+                                Masqué aux élèves
+                            </span>
+                            {% endif %}
+                        </div>
+                        <p class="text-sm text-slate-500 line-clamp-2 max-w-2xl">{{ ch.description or 'Consultez les cours, fiches et corrections.' }}</p>
+                        
+                        <!-- Badges resource count and student exercises -->
+                        <div class="flex flex-wrap items-center gap-2 mt-3">
+                            <span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                <span>{{ ch.resource_count }} document(s)</span>
+                            </span>
+
+                            <span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700">
+                                <i data-lucide="camera" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                <span>{{ ch.approved_exercises_count }} exercice(s) corrigé(s)</span>
+                            </span>
+
+                            {% if is_admin and ch.pending_exercises_count > 0 %}
+                            <a href="{{ url_for('admin_moderation') }}" class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-red-100 text-red-700 hover:bg-red-200 animate-pulse">
+                                <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-red-600"></i>
+                                <span>{{ ch.pending_exercises_count }} proposition(s) en attente</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="flex items-center space-x-2 self-end md:self-center">
+                    <a href="{{ url_for('chapter_view', chapter_id=ch.id) }}" class="inline-flex items-center space-x-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 font-bold text-sm px-4 py-2.5 rounded-xl transition">
+                        <span>Ouvrir</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+
+                    {% if is_admin %}
+                    <form action="{{ url_for('delete_chapter', chapter_id=ch.id) }}" method="POST" onsubmit="return confirm('Voulez-vous vraiment supprimer ce chapitre et toutes ses ressources ?');" class="inline">
+                        <button type="submit" class="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition" title="Supprimer le chapitre">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white rounded-3xl p-12 text-center border border-slate-200">
+            <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="folder-open" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800">Aucun chapitre pour le moment</h3>
+            <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Le professeur n'a pas encore ajouté de chapitre pour cette classe.</p>
+            {% if is_admin %}
+            <button onclick="openAddChapterModal()" class="mt-4 inline-flex items-center space-x-2 bg-indigo-600 text-white font-bold text-sm px-4 py-2.5 rounded-xl">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Créer le premier chapitre</span>
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Admin Modals -->
+{% if is_admin %}
+<!-- Add Chapter Modal -->
+<div id="addChapterModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md p-6 sm:p-8 m-4 transform scale-95 transition-transform duration-200" id="chapterModalBox">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                    <i data-lucide="folder-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Nouveau chapitre</h3>
+                    <p class="text-xs text-slate-500">{{ current_class.name }}</p>
+                </div>
+            </div>
+            <button onclick="closeAddChapterModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('add_chapter') }}" method="POST" class="space-y-4">
+            <input type="hidden" name="class_id" value="{{ current_class.id }}">
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Numéro du chapitre</label>
+                <input type="number" name="chapter_number" value="{{ (chapters|length) + 1 }}" min="1" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Titre du chapitre</label>
+                <input type="text" name="title" required placeholder="Ex: Dérivation et étude de fonctions" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Description ou notions abordées</label>
+                <textarea name="description" rows="3" placeholder="Ex: Taux de variation, nombre dérivé, équation de la tangente..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-3">
+                <button type="button" onclick="closeAddChapterModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
+                    Annuler
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition">
+                    Créer le chapitre
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Announcement Modal (for this class) -->
+<div id="addAnnouncementModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg p-6 sm:p-8 m-4 transform scale-95 transition-transform duration-200" id="announcementModalBox">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                    <i data-lucide="megaphone" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Ajouter une info pour {{ current_class.name }}</h3>
+                    <p class="text-xs text-slate-500">Visible par les élèves de la classe</p>
+                </div>
+            </div>
+            <button onclick="closeAddAnnouncementModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('add_announcement') }}" method="POST" class="space-y-4">
+            <input type="hidden" name="class_id" value="{{ current_class.id }}">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Type de message</label>
+                <select name="badge_type" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="info">📢 Information générale</option>
+                    <option value="honor">🏆 Félicitations / Meilleures notes</option>
+                    <option value="eval">📝 Prochain contrôle / DS</option>
+                    <option value="devoir">📌 Devoir maison / Exercices à faire</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Titre</label>
+                <input type="text" name="title" required placeholder="Ex: Meilleures notes au DS n°1 / Devoir pour jeudi" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Contenu du message</label>
+                <textarea name="content" required rows="4" placeholder="Détaillez vos félicitations, les consignes ou les dates importantes..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-1">
+                <input type="checkbox" name="is_pinned" id="is_pinned" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                <label for="is_pinned" class="text-xs text-slate-700 font-medium">Épingler en haut du tableau</label>
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-3">
+                <button type="button" onclick="closeAddAnnouncementModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
+                    Annuler
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-md transition">
+                    Publier l'annonce
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

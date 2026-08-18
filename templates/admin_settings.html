@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Paramètres & Fin d'Année - Espace Professeur{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <!-- Header -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center space-x-4">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <i data-lucide="sliders" class="w-7 h-7"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Paramètres & Transition d'Année</h1>
+                <p class="text-sm text-slate-500">Gérez l'année scolaire affichée et préparez facilement la rentrée suivante</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <span class="px-4 py-2 rounded-2xl bg-indigo-50 text-indigo-700 font-extrabold text-sm border border-indigo-200">
+                Année active : {{ school_year }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+            <div class="text-2xl sm:text-3xl font-black text-indigo-600 mb-1">{{ stats.classes_count }}</div>
+            <div class="text-xs font-bold text-slate-500">Classes actives</div>
+        </div>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+            <div class="text-2xl sm:text-3xl font-black text-indigo-600 mb-1">{{ stats.chapters_count }}</div>
+            <div class="text-xs font-bold text-slate-500">Chapitres</div>
+        </div>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+            <div class="text-2xl sm:text-3xl font-black text-indigo-600 mb-1">{{ stats.resources_count }}</div>
+            <div class="text-xs font-bold text-slate-500">Documents / Liens</div>
+        </div>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+            <div class="text-2xl sm:text-3xl font-black text-emerald-600 mb-1">{{ stats.submissions_count }}</div>
+            <div class="text-xs font-bold text-slate-500">Exercices d'élèves</div>
+        </div>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm text-center col-span-2 sm:col-span-1">
+            <div class="text-2xl sm:text-3xl font-black text-amber-600 mb-1">{{ stats.announcements_count }}</div>
+            <div class="text-xs font-bold text-slate-500">Annonces / Notes</div>
+        </div>
+    </div>
+
+    <!-- Section 1: General Settings (School Year, Teacher Name) -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-6">
+        <div class="flex items-center space-x-3 pb-4 border-b border-slate-100">
+            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">1. Informations générales & Année scolaire</h2>
+                <p class="text-xs text-slate-500">Modifiez ces informations à tout moment sans réinitialiser vos données</p>
+            </div>
+        </div>
+
+        <form action="{{ url_for('update_site_settings') }}" method="POST" class="space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                
+                <!-- School Year -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                        Année Scolaire affichée *
+                    </label>
+                    <input type="text" name="school_year" value="{{ school_year }}" required placeholder="Ex: 2026-2027" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-[11px] text-slate-400 mt-1">Exemples : 2026-2027, 2027-2028, 2028-2029</p>
+                </div>
+
+                <!-- Teacher Name -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                        Nom de l'Enseignant *
+                    </label>
+                    <input type="text" name="teacher_name" value="{{ teacher_name }}" required placeholder="Ex: M. Gimenez" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-[11px] text-slate-400 mt-1">Apparaît sur le logo et l'en-tête du site</p>
+                </div>
+
+                <!-- Site Title -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                        Titre du site *
+                    </label>
+                    <input type="text" name="site_title" value="{{ site_title }}" required placeholder="Ex: Maths & Sciences" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-[11px] text-slate-400 mt-1">Nom principal du site</p>
+                </div>
+
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-md transition">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Enregistrer les modifications</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Section 2: End-of-Year Reset (Un bouton pour tout effacer et passer à la nouvelle rentrée) -->
+    <div class="bg-gradient-to-br from-rose-50 via-white to-orange-50 rounded-3xl p-6 sm:p-8 border-2 border-rose-200 shadow-md space-y-6">
+        
+        <div class="flex items-start justify-between gap-4 pb-4 border-b border-rose-100">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-rose-500/20">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-extrabold text-slate-900">2. Zone Fin d'Année & Nouvelle Rentrée</h2>
+                    <p class="text-xs sm:text-sm text-slate-600">Réinitialisez le site en un clic pour accueillir vos nouveaux élèves l'année prochaine</p>
+                </div>
+            </div>
+
+            <span class="hidden sm:inline-flex px-3 py-1 bg-rose-100 text-rose-800 font-extrabold text-xs rounded-full uppercase tracking-wider">
+                Action Fin d'année
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Choice 1: Standard Reset (Recommended) -->
+            <div class="p-5 bg-white rounded-2xl border-2 border-emerald-300 shadow-sm relative flex flex-col justify-between">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800">RECOMMANDÉ</span>
+                        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i>
+                    </div>
+                    <h3 class="font-extrabold text-slate-900 text-base">Rentrée Scolaire Propre</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        • Efface toutes les photos et exercices des anciens élèves.<br>
+                        • Efface les anciennes annonces et notes de DS.<br>
+                        • Crée un nouveau message d'accueil pour chaque classe.<br>
+                        • Passe à la nouvelle année scolaire.<br>
+                        • <strong class="text-emerald-700">Conserve tous vos cours, chapitres et documents !</strong>
+                    </p>
+                </div>
+                <button onclick="openResetConfirmModal('standard', '{{ next_year_str }}', 'Rentrée Scolaire Propre (Garde vos cours, efface les élèves)')" class="mt-4 w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span>Préparer l'année {{ next_year_str }}</span>
+                </button>
+            </div>
+
+            <!-- Choice 2: Clear Submissions Only -->
+            <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">EXERCICES SEULS</span>
+                        <i data-lucide="camera" class="w-5 h-5 text-blue-500"></i>
+                    </div>
+                    <h3 class="font-extrabold text-slate-900 text-base">Vider les exercices élèves</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        • Efface uniquement toutes les propositions d'exercices et de corrigés des élèves.<br>
+                        • Conserve toutes vos annonces, cours, chapitres et classes.
+                    </p>
+                </div>
+                <button onclick="openResetConfirmModal('exercises_only', '{{ school_year }}', 'Vider uniquement les exercices élèves')" class="mt-4 w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Vider les exercices</span>
+                </button>
+            </div>
+
+            <!-- Choice 3: Full Factory Reset -->
+            <div class="p-5 bg-white rounded-2xl border border-rose-200 shadow-sm flex flex-col justify-between">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">REMISE À ZÉRO TOTALE</span>
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-500"></i>
+                    </div>
+                    <h3 class="font-extrabold text-slate-900 text-base">Remise à zéro d'usine</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        • Efface TOUT (exercices, annonces, documents et chapitres).<br>
+                        • Réinitialise le site avec les 5 classes par défaut de départ.
+                    </p>
+                </div>
+                <button onclick="openResetConfirmModal('full_factory_reset', '{{ next_year_str }}', 'Remise à zéro totale (Efface tout)')" class="mt-4 w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5">
+                    <i data-lucide="power" class="w-4 h-4"></i>
+                    <span>Remise à zéro complète</span>
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Modal Confirmation Réinitialisation Fin d'Année -->
+<div id="resetConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200 p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg p-6 sm:p-8 my-8 transform scale-95 transition-transform duration-200" id="resetModalBox">
+        
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">Confirmation de réinitialisation</h3>
+                    <p class="text-xs text-rose-600 font-semibold" id="modal_reset_title">Action de fin d'année</p>
+                </div>
+            </div>
+            <button onclick="closeResetConfirmModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('reset_end_of_year_action') }}" method="POST" class="space-y-4">
+            <input type="hidden" name="reset_type" id="modal_reset_type" value="standard">
+
+            <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1.5">
+                <p class="font-bold">⚠️ Attention : Cette action est irréversible.</p>
+                <p id="modal_reset_desc">Les données sélectionnées seront définitivement effacées pour laisser place à la nouvelle année scolaire.</p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Nouvelle Année Scolaire
+                </label>
+                <input type="text" name="new_school_year" id="modal_school_year_input" value="{{ next_year_str }}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Tapez <strong class="text-rose-600 font-black">REINITIALISER</strong> pour confirmer :
+                </label>
+                <input type="text" name="confirmation_text" required placeholder="REINITIALISER" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono tracking-widest text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-3">
+                <button type="button" onclick="closeResetConfirmModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
+                    Annuler
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-md transition flex items-center gap-1.5">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Confirmer la réinitialisation</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openResetConfirmModal(type, year, title) {
+        document.getElementById('modal_reset_type').value = type;
+        document.getElementById('modal_school_year_input').value = year;
+        document.getElementById('modal_reset_title').textContent = title;
+
+        const desc = document.getElementById('modal_reset_desc');
+        if (type === 'standard') {
+            desc.textContent = "Les propositions des élèves et les anciennes annonces seront supprimées. Vos cours et chapitres restent intacts.";
+        } else if (type === 'exercises_only') {
+            desc.textContent = "Seuls les exercices et corrigés proposés par les élèves seront supprimés.";
+        } else {
+            desc.textContent = "L'ensemble du site (cours, chapitres, exercices, annonces) sera entièrement réinitialisé comme au premier jour.";
+        }
+
+        const m = document.getElementById('resetConfirmModal');
+        const box = document.getElementById('resetModalBox');
+        m.classList.remove('hidden');
+        setTimeout(() => {
+            m.classList.remove('opacity-0');
+            box.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeResetConfirmModal() {
+        const m = document.getElementById('resetConfirmModal');
+        const box = document.getElementById('resetModalBox');
+        m.classList.add('opacity-0');
+        box.classList.add('scale-95');
+        setTimeout(() => m.classList.add('hidden'), 200);
+    }
+</script>
+{% endblock %}
