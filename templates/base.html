@@ -322,6 +322,37 @@
         <p id="lightboxCaption" class="mt-4 text-white/90 text-sm font-medium text-center bg-black/40 px-4 py-1.5 rounded-full backdrop-blur-sm"></p>
     </div>
 
+    <!-- Global PDF Viewer Modal (Visionneuse PDF intégrée) -->
+    <div id="pdfViewerModal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center space-x-3 truncate">
+                    <div class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                    </div>
+                    <span id="pdfModalTitle" class="text-sm font-bold truncate">Document PDF</span>
+                </div>
+                <div class="flex items-center space-x-2 flex-shrink-0">
+                    <a id="pdfModalDownloadBtn" href="#" download target="_blank" class="inline-flex items-center space-x-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Télécharger</span>
+                    </a>
+                    <a id="pdfModalNewTabBtn" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white text-xs px-2.5 py-1.5 rounded-xl transition" title="Ouvrir dans un nouvel onglet">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                    </a>
+                    <button onclick="closePdfViewer()" class="p-1.5 text-slate-400 hover:text-white rounded-xl transition">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- PDF Frame -->
+            <div class="flex-1 w-full h-full bg-slate-100 relative">
+                <iframe id="pdfIframe" src="" class="w-full h-full border-0"></iframe>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>

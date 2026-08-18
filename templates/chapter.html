@@ -223,14 +223,26 @@
 
                             {% if r.resource_type == 'link' %}
                             <a href="{{ r.external_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-xs px-3 py-1.5 rounded-xl transition">
-                                <span>Ouvrir le lien</span>
+                                <span>Ouvrir</span>
                                 <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                             </a>
                             {% elif r.resource_type == 'image' %}
-                            <button onclick="openLightbox('{{ r.file_url }}', '{{ r.title }}')" class="inline-flex items-center space-x-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1.5 rounded-xl transition">
+                            <button onclick="openLightbox('{{ r.file_url }}', '{{ r.title|escape }}')" class="inline-flex items-center space-x-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1.5 rounded-xl transition">
                                 <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                                <span>Voir l'image</span>
+                                <span>Voir</span>
                             </button>
+                            <a href="{{ r.file_url }}" download class="inline-flex items-center space-x-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs p-1.5 rounded-xl transition" title="Télécharger">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            </a>
+                            {% elif r.resource_type == 'pdf' %}
+                            <button onclick="openPdfViewer('{{ r.file_url }}', '{{ r.title|escape }}')" class="inline-flex items-center space-x-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-sm">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                <span>Visualiser</span>
+                            </button>
+                            <a href="{{ r.file_url }}" target="_blank" download class="inline-flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-sm" title="Ouvrir / Télécharger le fichier PDF">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                <span class="hidden sm:inline">Télécharger</span>
+                            </a>
                             {% else %}
                             <a href="{{ r.file_url }}" target="_blank" class="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition shadow-sm">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>

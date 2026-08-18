@@ -56,10 +56,40 @@ function closeLightbox() {
     document.body.style.overflow = '';
 }
 
+// Global PDF Viewer Modal
+function openPdfViewer(pdfUrl, title) {
+    const modal = document.getElementById('pdfViewerModal');
+    const iframe = document.getElementById('pdfIframe');
+    const titleEl = document.getElementById('pdfModalTitle');
+    const downloadBtn = document.getElementById('pdfModalDownloadBtn');
+    const newTabBtn = document.getElementById('pdfModalNewTabBtn');
+
+    if (!modal || !iframe) return;
+
+    if (titleEl) titleEl.textContent = title || 'Document PDF';
+    if (downloadBtn) downloadBtn.href = pdfUrl;
+    if (newTabBtn) newTabBtn.href = pdfUrl;
+
+    // Use Google Docs PDF viewer as a universal web fallback if needed or direct link
+    iframe.src = pdfUrl;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closePdfViewer() {
+    const modal = document.getElementById('pdfViewerModal');
+    const iframe = document.getElementById('pdfIframe');
+    if (!modal) return;
+    if (iframe) iframe.src = '';
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
 // Close lightbox on Escape key or background click
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeLightbox();
+        closePdfViewer();
         closeLoginModal();
         closeStudentSubmitModal();
         closeAddResourceModal();
