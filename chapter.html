@@ -235,11 +235,11 @@
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                             </a>
                             {% elif r.resource_type == 'pdf' %}
-                            <button onclick="openPdfViewer('{{ url_for('view_pdf_proxy', resource_id=r.id) }}', '{{ r.title|escape }}')" class="inline-flex items-center space-x-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-sm">
+                            <button onclick="openPdfViewer('{{ r.file_url }}', '{{ r.title|escape }}')" class="inline-flex items-center space-x-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-sm">
                                 <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                 <span>Visualiser</span>
                             </button>
-                            <a href="{{ url_for('view_pdf_proxy', resource_id=r.id) }}" target="_blank" class="inline-flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-sm" title="Ouvrir / Télécharger le fichier PDF">
+                            <a href="{{ r.file_url }}" target="_blank" download class="inline-flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-sm" title="Ouvrir / Télécharger le fichier PDF">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                                 <span class="hidden sm:inline">Télécharger</span>
                             </a>
